@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "PETSGRAM Mobile",
+    "slug": "petsgram-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#faf6f0"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ordinary.petsgram"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#faf6f0"
+      },
+      "package": "com.ordinary.petsgram",
+      "config": {
+        "googleMaps": {
+          "apiKey": "MOCK_GOOGLE_MAPS_KEY_FOR_COMPILATION"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ]
+  }
+}

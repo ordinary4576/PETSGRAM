@@ -1,95 +1,133 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuthStore } from '../store/authStore';
+import { RootStackParamList } from '../../types/navigation';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 
-// Simulated TypeScript Navigation Stack Types Definitions
-export type RootStackParamList = {
-  Login: undefined;
-  SignUp: undefined;
-  ForgotPassword: undefined;
-  MainTabs: undefined;
-  PetDetails: { petId: string };
-  CreateListing: undefined;
-  AdminDashboard: undefined;
-  ShelterVerifications: undefined;
-};
+// Import Screens
+import LoginScreen from '../screens/auth/LoginScreen';
+import SignUpScreen from '../screens/auth/SignUpScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import FeedScreen from '../screens/main/FeedScreen';
+import MatchScreen from '../screens/main/MatchScreen';
+import MapScreen from '../screens/main/MapScreen';
+import ChatScreen from '../screens/main/ChatScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
+import PetDetailsScreen from '../screens/main/PetDetailsScreen';
+import CreateListingScreen from '../screens/main/CreateListingScreen';
 
-/**
- * Enterprise React Navigation Navigator implementing strict RBAC routing gates.
- * Avoids business logical leakage inside views components by mapping stack trees.
- */
+// Lucide icons for gorgeous native indicators
+import { Flame, Compass, MessageSquare, User, ListCollapse } from 'lucide-react-native';
+
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator();
+
+// 1. App Main Bottom Tabs Navigation
+function MainTabsNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: true,
+        headerStyle: { backgroundColor: '#faf6f0', borderBottomWidth: 1, borderBottomColor: '#eae3db' },
+        headerTitleStyle: { color: '#4a3f35', fontWeight: 'bold' },
+        tabBarStyle: { backgroundColor: '#faf6f0', borderTopColor: '#eae3db', height: 60, paddingBottom: 8 },
+        tabBarActiveTintColor: '#d97452',
+        tabBarInactiveTintColor: '#8e8276',
+      }}
+    >
+      <Tab.Screen
+        name="Feed"
+        component={FeedScreen}
+        options={{
+          title: 'Adoption Feed',
+          tabBarIcon: ({ color, size }) => <ListCollapse color={color} size={size} />
+        }}
+      />
+      <Tab.Screen
+        name="Match"
+        component={MatchScreen}
+        options={{
+          title: 'Pet Swipe',
+          tabBarIcon: ({ color, size }) => <Flame color={color} size={size} />
+        }}
+      />
+      <Tab.Screen
+        name="Map"
+        component={MapScreen}
+        options={{
+          title: 'Pet Map',
+          tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />
+        }}
+      />
+      <Tab.Screen
+        name="Chat"
+        component={ChatScreen}
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ color, size }) => <MessageSquare color={color} size={size} />
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <User color={color} size={size} />
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// 2. Main Root Navigation Container Stack
 export const RootNavigator: React.FC = () => {
-  const { isAuthenticated, user, loading, initializeSession } = useAuthStore();
-
-  // Load session tokens on bootstrap
-  useEffect(() => {
-    initializeSession();
-  }, []);
+  const { isAuthenticated, loading } = useAuthStore();
 
   if (loading) {
-    // Render native mobile loading spinners
     return (
-      <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-cozy)' }}>
-        <span>Loading secure keychains...</span>
-      </div>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#d97452" />
+      </View>
     );
   }
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
-      {/* 
-        GATED ROUTING TREE:
-        If not authenticated: user can ONLY access Auth Stack.
-        If authenticated: user gets core apps + extra drawers according to RBAC enums.
-      */}
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
-        <div id="AuthStack" style={{ padding: '20px', background: 'var(--surface-secondary)', height: '100%' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Authentication Stack</h2>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Sign In / SignUp Screens</p>
-          <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button style={{ padding: '10px', background: 'var(--primary-cozy)', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer' }}>
-              Load Mobile Login Screen
-            </button>
-            <button style={{ padding: '10px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '8px', cursor: 'pointer' }}>
-              Load Mobile SignUp Screen
-            </button>
-          </div>
-        </div>
+        // Auth Navigator Tree
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="SignUp" component={SignUpScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+        </>
       ) : (
-        <div id="AppStack" style={{ padding: '20px', height: '100%' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>PETSGRAM Primary App Stack</h2>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Logged User: {user?.email} ({user?.role})</p>
-          
-          <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <button style={{ padding: '10px', background: 'var(--surface-secondary)', border: 'none', borderRadius: '8px', color: 'var(--text-main)' }}>
-              📱 Open Home Feed View
-            </button>
-            <button style={{ padding: '10px', background: 'var(--surface-secondary)', border: 'none', borderRadius: '8px', color: 'var(--text-main)' }}>
-              🗺️ Open Geospatial Map View
-            </button>
-
-            {/* SHELTER ENUM ACCESS CHECK GATES (RBAC Protection) */}
-            {(user?.role === 'SHELTER' || user?.role === 'ADMIN') && (
-              <div style={{ border: '1.5px dashed var(--color-adoption)', padding: '14px', borderRadius: '12px', background: 'var(--color-adoption-light)', marginTop: '10px' }}>
-                <strong style={{ color: 'var(--color-adoption)', fontSize: '0.78rem' }}>🛡️ Shelter Admin Viewports Unlocked:</strong>
-                <button style={{ width: '100%', padding: '10px', background: 'var(--color-adoption)', border: 'none', color: '#fff', borderRadius: '8px', marginTop: '8px', cursor: 'pointer' }}>
-                  Create Shelter Pet Listing
-                </button>
-              </div>
-            )}
-
-            {/* ADMIN / MODERATOR ACCESS CHECK GATES (RBAC Protection) */}
-            {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
-              <div style={{ border: '1.5px dashed var(--color-rescue)', padding: '14px', borderRadius: '12px', background: 'var(--color-rescue-light)', marginTop: '10px' }}>
-                <strong style={{ color: 'var(--color-rescue)', fontSize: '0.78rem' }}>🛡️ Platform Moderation Tools Unlocked:</strong>
-                <button style={{ width: '100%', padding: '10px', background: 'var(--color-rescue)', border: 'none', color: '#fff', borderRadius: '8px', marginTop: '8px', cursor: 'pointer' }}>
-                  Review Flagged Pet Reports
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        // Primary App Navigation Tree
+        <>
+          <Stack.Screen name="MainTabs" component={MainTabsNavigator} />
+          <Stack.Screen
+            name="PetDetails"
+            component={PetDetailsScreen}
+            options={{ headerShown: true, title: 'Listing Details', headerStyle: { backgroundColor: '#faf6f0' } }}
+          />
+          <Stack.Screen
+            name="CreateListing"
+            component={CreateListingScreen}
+            options={{ headerShown: true, title: 'Create Pet Listing', headerStyle: { backgroundColor: '#faf6f0' } }}
+          />
+        </>
       )}
-    </div>
+    </Stack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#faf6f0'
+  }
+});
+
 export default RootNavigator;
