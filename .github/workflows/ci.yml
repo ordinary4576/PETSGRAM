@@ -1,0 +1,125 @@
+# ==============================================================================
+# PETSGRAM Enterprise CI/CD Pipeline Workflow (GitHub Actions)
+# ==============================================================================
+
+name: PETSGRAM Continuous Integration & Deployment
+
+on:
+  push:
+    branches: [ main, release/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # 1. DevSecOps Quality Audit & Syntax lint checks
+  audit_and_lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Enforce TypeScript Compilation Syntax Checks
+        run: npm run build --workspaces --if-present
+
+      - name: Execute Code Formatting Linter (ESLint)
+        run: npm run lint --if-present
+
+      - name: Run OWASP Dependency Vulnerability Scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+  # 2. Automated Relational Testing Suite (Unit & Integration tests)
+  execute_tests:
+    needs: audit_and_lint
+    runs-on: ubuntu-latest
+    services:
+      # Spin up ephemeral PostgreSQL instance for integration testing
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_secure_pass_2026
+          POSTGRES_DB: petsgram_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # Spin up ephemeral Redis instance for rate-limiting tests
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Database Relational Migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:test_secure_pass_2026@localhost:5432/petsgram_test_db?schema=public
+        working-directory: ./packages/backend
+
+      - name: Run Unit & Integration Test Suites
+        run: npm run test --workspaces --if-present
+        env:
+          DATABASE_URL: postgresql://postgres:test_secure_pass_2026@localhost:5432/petsgram_test_db?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: cf6c1a8e2da8b7468165b4c1072a2e46b0a1d48c0827efc90a184efcb40ad9163f8d9b1a0e
+
+  # 3. Build & Publish Docker Containers (Continuous Deployment)
+  build_and_deploy:
+    needs: execute_tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Amazon ECR (Elastic Container Registry)
+        uses: aws-actions/amazon-ecr-login@v2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-west-2
+
+      - name: Build and Push Backend API Container
+        uses: docker/build-push-action@v5
+        with:
+          context: ./packages/backend
+          push: true
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/petsgram-backend:latest
+            ${{ secrets.ECR_REGISTRY }}/petsgram-backend:${{ github.sha }}

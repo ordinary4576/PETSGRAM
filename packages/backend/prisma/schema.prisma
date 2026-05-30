@@ -1,0 +1,255 @@
+// ==============================================================================
+// PETSGRAM Prisma Normalized Database Relational Schema Blueprint
+// ==============================================================================
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  FOSTER
+  SHELTER
+  MODERATOR
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ListingType {
+  ADOPTION
+  FOSTER
+  RESCUE
+  LOST
+}
+
+model User {
+  id                 String               @id @default(uuid()) @db.Uuid
+  email              String               @unique @db.VarChar(255)
+  passwordHash       String               @db.VarChar(255)
+  name               String               @db.VarChar(100)
+  phone              String?              @db.VarChar(20)
+  role               Role                 @default(USER)
+  isVerified         Boolean              @default(false)
+  verificationToken  String?              @db.VarChar(255)
+  passwordResetToken String?              @db.VarChar(255)
+  failedLoginAttempts Int                 @default(0)
+  lockedUntil        DateTime?
+  deletedAt          DateTime?            // Soft delete field
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Relational mappings
+  pets               Pet[]                @relation("UserPets")
+  shelterProfile     Shelter?
+  applications       Application[]
+  messagesSent       Message[]            @relation("SenderMessages")
+  comments           Comment[]
+  likes              Like[]
+  reportsFiled       Report[]             @relation("Reporter")
+  reportsTargeted    Report[]             @relation("ReportedUser")
+  badges             Badge[]
+  conversations      ConversationParticipant[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model Shelter {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @unique @db.Uuid
+  taxId           String      @unique @db.VarChar(50)
+  organizationName String     @db.VarChar(150)
+  address         String      @db.VarChar(255)
+  isApproved      Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Foreign keys
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Pet {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @db.VarChar(100)
+  category      String         @db.VarChar(50)  // dog, cat, bunny, other
+  type          ListingType    @default(ADOPTION)
+  breed         String         @db.VarChar(100)
+  age           String         @db.VarChar(50)
+  gender        String         @db.VarChar(10)
+  images        String[]
+  description   String         @db.Text
+  vaccinated    Boolean        @default(false)
+  microchipped  Boolean        @default(false)
+  neutered      Boolean        @default(false)
+  temperaments  String[]
+  ownerId       String         @db.Uuid
+  locationId    String?        @db.Uuid
+  deletedAt     DateTime?      // Soft delete field
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Foreign keys
+  owner         User           @relation("UserPets", fields: [ownerId], references: [id], onDelete: Cascade)
+  location      Location?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  applications  Application[]
+  comments      Comment[]
+  likes         Like[]
+  reports       Report[]
+  conversations Conversation[]
+
+  @@index([ownerId])
+  @@index([category, type])
+  @@index([breed])
+}
+
+model Location {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(150)
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relational mappings
+  pets      Pet[]
+
+  @@index([lat, lng]) // Geospatial indexing representation
+}
+
+model Application {
+  id              String            @id @default(uuid()) @db.Uuid
+  petId           String            @db.Uuid
+  applicantId     String            @db.Uuid
+  status          ApplicationStatus @default(PENDING)
+  homeType        String            @db.VarChar(100)
+  hasYard         Boolean           @default(false)
+  experienceLevel String            @db.VarChar(100)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Foreign keys
+  pet             Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  applicant       User              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+  @@index([applicantId])
+}
+
+model Conversation {
+  id           String                    @id @default(uuid()) @db.Uuid
+  petId        String?                   @db.Uuid
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  // Relational mappings
+  pet          Pet?                      @relation(fields: [petId], references: [id], onDelete: SetNull)
+  messages     Message[]
+  participants ConversationParticipant[]
+
+  @@index([petId])
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  userId         String       @db.Uuid
+  createdAt      DateTime     @default(now())
+
+  // Foreign keys
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  senderId       String       @db.Uuid
+  text           String       @db.Text
+  mediaUrl       String?      @db.VarChar(2083)
+  locationLat    Float?
+  locationLng    Float?
+  voiceDuration  String?      @db.VarChar(10)
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  // Foreign keys
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SenderMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+}
+
+model Comment {
+  id        String    @id @default(uuid()) @db.Uuid
+  petId     String    @db.Uuid
+  userId    String    @db.Uuid
+  text      String    @db.Text
+  deletedAt DateTime? // Soft delete field
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Foreign keys
+  pet       Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
+}
+
+model Like {
+  id        String   @id @default(uuid()) @db.Uuid
+  petId     String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  // Foreign keys
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([petId, userId])
+}
+
+model Report {
+  id             String    @id @default(uuid()) @db.Uuid
+  reporterId     String    @db.Uuid
+  reportedUserId String?   @db.Uuid
+  petId          String?   @db.Uuid
+  reason         String    @db.Text
+  isReviewed     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+
+  // Foreign keys
+  reporter       User      @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser   User?     @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  pet            Pet?      @relation(fields: [petId], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+}
+
+model Badge {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  title     String   @db.VarChar(100)
+  description String @db.VarChar(255)
+  iconType  String   @db.VarChar(50) // gold, silver, bronze
+  awardedAt DateTime @default(now())
+
+  // Foreign keys
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
