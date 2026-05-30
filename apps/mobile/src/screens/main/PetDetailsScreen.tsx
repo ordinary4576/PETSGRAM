@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../services/apiClient';
 import Toast from 'react-native-toast-message';
 import { ShieldCheck, Heart, ShieldAlert, Award } from 'lucide-react-native';
+import AdoptionTimeline from '../../components/AdoptionTimeline';
 
 export default function PetDetailsScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -89,12 +90,15 @@ export default function PetDetailsScreen({ route, navigation }: any) {
         <View style={styles.infoCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.petName}>{pet.name}</Text>
-            <View style={[styles.typeBadge, styles[`badge_${pet.type}`]]}>
+            <View style={[styles.typeBadge, (styles as any)[`badge_${pet.type}`]]}>
               <Text style={styles.badgeText}>{pet.type}</Text>
             </View>
           </View>
           <Text style={styles.petMeta}>{pet.breed} • {pet.age} • {pet.gender}</Text>
         </View>
+
+        {/* Adoption status timeline progress visualization */}
+        <AdoptionTimeline currentStage="Submitted" />
 
         <View style={styles.specsContainer}>
           <View style={styles.specBox}>

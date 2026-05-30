@@ -3,6 +3,7 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Keyboard
 import { useAuthStore } from '../../store/authStore';
 import io from 'socket.io-client';
 import { Send, Image as ImageIcon } from 'lucide-react-native';
+import ChatVoiceWaveform from '../../components/ChatVoiceWaveform';
 
 const SOCKET_SERVER_URL = process.env.EXPO_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://10.0.2.2:5000';
 
@@ -37,7 +38,8 @@ export default function ChatScreen() {
 
     // Initial dummy historic messages setup
     setMessages([
-      { id: 'msg_init', text: 'Hello! Thanks for reaching out regarding active fosters.', senderId: 'other', createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() }
+      { id: 'msg_init', text: 'Hello! Thanks for reaching out regarding active fosters.', senderId: 'other', createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString() },
+      { id: 'msg_voice', text: 'voice_memo_audio_soundwave', senderId: 'other', createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString() }
     ]);
 
     // Handle receiving messages
@@ -102,11 +104,17 @@ export default function ChatScreen() {
 
   const renderMessageItem = ({ item }: any) => {
     const isMe = item.senderId === (user?.id || 'usr_client_anon');
+    const isVoice = item.text === 'voice_memo_audio_soundwave';
+    
     return (
       <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
-        <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
-          {item.text}
-        </Text>
+        {isVoice ? (
+          <ChatVoiceWaveform />
+        ) : (
+          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+            {item.text}
+          </Text>
+        )}
         <Text style={styles.timeText}>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
       </View>
     );

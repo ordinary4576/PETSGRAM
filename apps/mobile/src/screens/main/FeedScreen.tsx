@@ -47,7 +47,7 @@ export default function FeedScreen({ navigation }: any) {
         <View style={styles.cardDetails}>
           <View style={styles.cardHeader}>
             <Text style={styles.petName}>{item.name}</Text>
-            <View style={[styles.typeBadge, styles[`badge_${item.type}`]]}>
+            <View style={[styles.typeBadge, (styles as any)[`badge_${item.type}`]]}>
               <Text style={styles.typeBadgeText}>{item.type}</Text>
             </View>
           </View>

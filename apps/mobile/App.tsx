@@ -8,6 +8,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/authStore';
 import NetInfo from '@react-native-community/netinfo';
 import messaging from '@react-native-firebase/messaging';
+import OfflineBanner from './src/components/OfflineBanner';
 
 // 1. Initialize React Query Client with Offline caching configurations
 const queryClient = new QueryClient({
@@ -148,7 +149,8 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
         <GlobalErrorBoundary>
-          <NavigationContainer linking={linking}>
+          <NavigationContainer linking={linking as any}>
+            <OfflineBanner />
             <RootNavigator />
             <Toast />
           </NavigationContainer>
