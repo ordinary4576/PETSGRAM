@@ -5,7 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { globalRateLimiter, authRateLimiter } from './middleware/rateLimiter';
-import { authenticateJWT, requireRole } from './middleware/rbac';
+import { authenticateJWT, requireRole, AuthenticatedRequest } from './middleware/rbac';
 import { AuthController } from './controllers/authController';
 import { PetController } from './controllers/petController';
 import { Role } from '@prisma/client';
@@ -91,13 +91,14 @@ app.post('/api/v1/auth/logout', AuthController.logout);
 // Pet Listings Bounded routes
 app.post('/api/v1/pets', authenticateJWT, PetController.createPetListing);
 app.get('/api/v1/pets', PetController.searchPets);
+app.get('/api/v1/pets/upload-url', authenticateJWT, PetController.getUploadUrl);
 
 // Sample RBAC Sensitive Route (Moderator & Admin Only)
 app.get('/api/v1/admin/moderation', authenticateJWT, requireRole([Role.MODERATOR, Role.ADMIN]), (req, res) => {
   return res.status(200).json({
     status: 'success',
     message: 'Authorized access to moderation queues.',
-    auditor: req.user
+    auditor: (req as AuthenticatedRequest).user
   });
 });
 

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient, ListingType } from '@prisma/client';
 import { AuthenticatedRequest } from '../middleware/rbac';
+import { StorageService } from '../services/storageService';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -176,6 +177,40 @@ export class PetController {
         status: 'error',
         code: 'INTERNAL_SERVER_ERROR',
         message: 'Failed to complete radius search queries.'
+      });
+    }
+  }
+  /**
+   * Generates AWS S3 Pre-Signed PUT upload URLs (GET /api/v1/pets/upload-url)
+   */
+  public static async getUploadUrl(req: AuthenticatedRequest, res: Response) {
+    try {
+      if (!req.user) return res.status(401).json({ status: 'error', message: 'Unauthorized.' });
+
+      const filename = req.query.filename as string;
+      const mimetype = req.query.mimetype as string;
+
+      if (!filename || !mimetype) {
+        return res.status(400).json({
+          status: 'error',
+          code: 'BAD_REQUEST',
+          message: 'Query parameters filename and mimetype are required.'
+        });
+      }
+
+      // Generate secure pre-signed PUT URLs
+      const credentials = await StorageService.getPresignedUploadUrl(filename, mimetype);
+
+      return res.status(200).json({
+        status: 'success',
+        ...credentials
+      });
+
+    } catch (error: any) {
+      return res.status(400).json({
+        status: 'error',
+        code: 'STORAGE_URL_ERROR',
+        message: error.message
       });
     }
   }
