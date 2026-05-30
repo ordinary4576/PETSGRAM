@@ -18,6 +18,13 @@ interface AuthState {
   login: (accessToken: string, user: UserSession) => Promise<void>;
   logout: () => Promise<void>;
   initializeSession: () => Promise<void>;
+  
+  // Centralized Undo Snackbar State parameters
+  snackbarVisible: boolean;
+  snackbarMessage: string;
+  onUndoCallback: () => void;
+  triggerSnackbar: (message: string, onUndo: () => void) => void;
+  dismissSnackbar: () => void;
 }
 
 const SECURE_STORE_KEY = 'petsgram_jwt_token';
@@ -123,6 +130,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (e) {
       set({ loading: false });
     }
+  },
+
+  // Centralized Undo Snackbar actions implementation
+  snackbarVisible: false,
+  snackbarMessage: '',
+  onUndoCallback: () => {},
+  triggerSnackbar: (message: string, onUndo: () => void) => {
+    set({
+      snackbarVisible: true,
+      snackbarMessage: message,
+      onUndoCallback: onUndo
+    });
+  },
+  dismissSnackbar: () => {
+    set({
+      snackbarVisible: false
+    });
   }
 }));
 

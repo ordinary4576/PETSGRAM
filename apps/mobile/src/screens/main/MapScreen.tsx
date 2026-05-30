@@ -3,8 +3,11 @@ import { View, StyleSheet, Dimensions, Text, ActivityIndicator, Image, Touchable
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../services/apiClient';
+import HapticFeedback from '../../services/hapticFeedback';
 
 export default function MapScreen({ navigation }: any) {
+  const [selectedPet, setSelectedPet] = useState<any | null>(null);
+
   // Center map around a cozy default regional coordinate bounds
   const [region] = useState({
     latitude: 34.0522,
@@ -63,6 +66,10 @@ export default function MapScreen({ navigation }: any) {
               title={pet.name}
               description={pet.breed}
               pinColor="#d97452"
+              onPress={() => {
+                HapticFeedback.light();
+                setSelectedPet(pet);
+              }}
             >
               <Callout
                 onPress={() => navigation.navigate('PetDetails', { petId: pet.id })}
@@ -81,6 +88,38 @@ export default function MapScreen({ navigation }: any) {
           );
         })}
       </MapView>
+
+      {/* Cozy Airbnb-style Bottom Sheet Preview Panel */}
+      {selectedPet && (
+        <View style={styles.bottomSheet}>
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>🐾 Pet Location Preview</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                HapticFeedback.light();
+                setSelectedPet(null);
+              }} 
+              style={styles.closeBtn}
+            >
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            style={styles.sheetCard}
+            onPress={() => navigation.navigate('PetDetails', { petId: selectedPet.id })}
+          >
+            <Image 
+              source={{ uri: selectedPet.images?.[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=150' }} 
+              style={styles.sheetImage} 
+            />
+            <View style={styles.sheetInfo}>
+              <Text style={styles.sheetPetName}>{selectedPet.name}</Text>
+              <Text style={styles.sheetPetMeta}>{selectedPet.breed} • {selectedPet.age}</Text>
+              <Text style={styles.sheetActionText}>Tap to open full bio & timeline tracker →</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -157,5 +196,78 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#d97452',
     marginTop: 2
+  },
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    right: 16,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#eae3db',
+    gap: 12,
+    shadowColor: '#4a3f35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  sheetTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#4a3f35'
+  },
+  closeBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#faf6f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#eae3db'
+  },
+  closeText: {
+    fontSize: 11,
+    color: '#8e8276',
+    fontWeight: 'bold'
+  },
+  sheetCard: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center'
+  },
+  sheetImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: '#eae3db'
+  },
+  sheetInfo: {
+    flex: 1,
+    gap: 2
+  },
+  sheetPetName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#4a3f35'
+  },
+  sheetPetMeta: {
+    fontSize: 12,
+    color: '#8e8276',
+    fontWeight: '700'
+  },
+  sheetActionText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#d97452',
+    marginTop: 4
   }
 });

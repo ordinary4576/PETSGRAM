@@ -83,6 +83,36 @@ export default function SignUpScreen({ navigation }: any) {
               onChangeText={setPassword}
             />
 
+            {/* Dynamic real-time Password Strength Affordance visualizer */}
+            {password.length > 0 && (
+              <View style={styles.strengthContainer}>
+                <View style={styles.strengthHeader}>
+                  <Text style={styles.strengthLabel}>
+                    Strength: {
+                      password.length < 6 ? 'Very Weak 🚨' :
+                      (password.length >= 8 && /\d/.test(password) && /[!@#$%^&*(),.?":{}|<>]/.test(password)) ? 'Strong 🐾' :
+                      (password.length >= 8 && /\d/.test(password)) ? 'Medium 🔑' : 'Weak ⚠️'
+                    }
+                  </Text>
+                </View>
+                <View style={styles.strengthBarBackground}>
+                  <View 
+                    style={[
+                      styles.strengthBarFill, 
+                      { 
+                        width: password.length < 6 ? '25%' :
+                               (password.length >= 8 && /\d/.test(password) && /[!@#$%^&*(),.?":{}|<>]/.test(password)) ? '100%' :
+                               (password.length >= 8 && /\d/.test(password)) ? '75%' : '50%',
+                        backgroundColor: password.length < 6 ? '#cc0000' :
+                                         (password.length >= 8 && /\d/.test(password) && /[!@#$%^&*(),.?":{}|<>]/.test(password)) ? '#6aa84f' :
+                                         (password.length >= 8 && /\d/.test(password)) ? '#f1c232' : '#e69138'
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            )}
+
             <Text style={styles.label}>Account Role Type</Text>
             <View style={styles.rolePickerContainer}>
               {(['USER', 'FOSTER', 'SHELTER'] as const).map((r) => (
@@ -226,5 +256,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#d97452',
     fontWeight: 'bold'
+  },
+  strengthContainer: {
+    gap: 6,
+    marginTop: 2
+  },
+  strengthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between'
+  },
+  strengthLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#8e8276'
+  },
+  strengthBarBackground: {
+    height: 4,
+    backgroundColor: '#eae3db',
+    borderRadius: 2,
+    overflow: 'hidden'
+  },
+  strengthBarFill: {
+    height: '100%',
+    borderRadius: 2
   }
 });

@@ -9,6 +9,7 @@ import { useAuthStore } from './src/store/authStore';
 import NetInfo from '@react-native-community/netinfo';
 import messaging from '@react-native-firebase/messaging';
 import OfflineBanner from './src/components/OfflineBanner';
+import UndoSnackbar from './src/components/UndoSnackbar';
 
 // 1. Initialize React Query Client with Offline caching configurations
 const queryClient = new QueryClient({
@@ -78,7 +79,7 @@ class GlobalErrorBoundary extends React.Component<{ children: React.ReactNode },
 }
 
 export default function App() {
-  const { initializeSession } = useAuthStore();
+  const { initializeSession, snackbarVisible, snackbarMessage, onUndoCallback, dismissSnackbar } = useAuthStore();
   const [isReady, setIsReady] = useState(false);
 
   // A. Deep-Linking & FCM App Startup Bootstrap handlers
@@ -152,6 +153,12 @@ export default function App() {
           <NavigationContainer linking={linking as any}>
             <OfflineBanner />
             <RootNavigator />
+            <UndoSnackbar
+              visible={snackbarVisible}
+              message={snackbarMessage}
+              onUndo={onUndoCallback}
+              onDismiss={dismissSnackbar}
+            />
             <Toast />
           </NavigationContainer>
         </GlobalErrorBoundary>
